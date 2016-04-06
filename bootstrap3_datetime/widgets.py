@@ -93,11 +93,19 @@ class DateTimePicker(DateTimeInput):
                 var callback = function() {
                     $(function(){$("#%(picker_id)s:has(input:not([readonly],[disabled]))").datetimepicker(%(options)s);});
                 };
-                if(window.addEventListener)
+                if(window.addEventListener) {
                     window.addEventListener("load", callback, false);
-                else if (window.attachEvent)
+                    $(document).on('shown.bs.modal', callback);
+                }
+                else if (window.attachEvent) {
                     window.attachEvent("onload", callback);
-                else window.onload = callback;
+                    $(document).on('shown.bs.modal', callback);
+                }
+                else {
+                    window.onload = callback;
+                    $(document).on('shown.bs.modal', callback);
+                }
+
             })(window);
         </script>'''
 

@@ -89,24 +89,20 @@ class DateTimePicker(DateTimeInput):
 
     js_template = '''
         <script>
-            (function(window) {
+            (function($) {
+                console.log("sucker");
+                var initialize = function (i, elem) {
+                    $(elem).datetimepicker(%(options)s);
+                }
                 var callback = function() {
-                    $(function(){$("#%(picker_id)s:has(input:not([readonly],[disabled]))").datetimepicker(%(options)s);});
+                    $("#%(picker_id)s:has(input:not([readonly],[disabled]))").each(initialize);
                 };
-                if(window.addEventListener) {
-                    window.addEventListener("load", callback, false);
-                    $(document).on('shown.bs.modal', callback);
-                }
-                else if (window.attachEvent) {
-                    window.attachEvent("onload", callback);
-                    $(document).on('shown.bs.modal', callback);
-                }
-                else {
-                    window.onload = callback;
-                    $(document).on('shown.bs.modal', callback);
-                }
-
-            })(window);
+                $(document).ready(callback);
+                $(document).bind('shown.bs.modal', callback);
+                $(document).bind('DOMNodeInserted', function(e){
+                    $(e.target).find('#%(picker_id)s:has(input:not([readonly],[disabled]))').each(initialize);
+                });
+            })(jQuery);
         </script>'''
 
     def __init__(self, attrs=None, format=None, options=None, div_attrs=None, icon_attrs=None):

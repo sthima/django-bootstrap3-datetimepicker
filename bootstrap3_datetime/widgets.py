@@ -46,6 +46,8 @@ class DateTimePicker(DateTimeInput):
                         lang = lang_map.get(lang, 'en-us')
                     if lang not in ('en', 'en-us'):
                         yield 'bootstrap3_datetime/js/locales/bootstrap-datetimepicker.%s.js' % (lang)
+                    # XXX should assure to use Django's jQuery
+                    yield 'bootstrap3_datetime/js/django-bootstrap-datetimepicker.js'
 
         js = JsFiles()
         css = {'all': ('bootstrap3_datetime/css/bootstrap-datetimepicker.min.css',), }
@@ -80,29 +82,17 @@ class DateTimePicker(DateTimeInput):
         return format
 
     html_template = '''
-        <div%(div_attrs)s>
-            <input%(input_attrs)s/>
+        <div django-bootstrap-datetimepicker %(div_attrs)s>
+            %(json_options)s
+            <input %(input_attrs)s/>
             <span class="input-group-addon">
                 <span%(icon_attrs)s></span>
             </span>
         </div>'''
 
     js_template = '''
-        <script>
-            (function($) {
-                console.log("sucker");
-                var initialize = function (i, elem) {
-                    $(elem).datetimepicker(%(options)s);
-                }
-                var callback = function() {
-                    $("#%(picker_id)s:has(input:not([readonly],[disabled]))").each(initialize);
-                };
-                $(document).ready(callback);
-                $(document).bind('shown.bs.modal', callback);
-                $(document).bind('DOMNodeInserted', function(e){
-                    $(e.target).find('#%(picker_id)s:has(input:not([readonly],[disabled]))').each(initialize);
-                });
-            })(jQuery);
+        <script type='application/json' datetimepicker-options>
+          %(options)s
         </script>'''
 
     def __init__(self, attrs=None, format=None, options=None, div_attrs=None, icon_attrs=None):
@@ -134,20 +124,19 @@ class DateTimePicker(DateTimeInput):
             input_attrs['value'] = force_text(self._format_value(value))
         input_attrs = dict([(key, conditional_escape(val)) for key, val in input_attrs.items()])  # python2.6 compatible
         if not self.picker_id:
-             self.picker_id = (input_attrs.get('id', '') +
-                               '_pickers').replace(' ', '_')
+            self.picker_id = (input_attrs.get('id', '') +
+                              '_pickers').replace(' ', '_')
         self.div_attrs['id'] = self.picker_id
-        picker_id = conditional_escape(self.picker_id)
         div_attrs = dict(
             [(key, conditional_escape(val)) for key, val in self.div_attrs.items()])  # python2.6 compatible
         icon_attrs = dict([(key, conditional_escape(val)) for key, val in self.icon_attrs.items()])
-        html = self.html_template % dict(div_attrs=flatatt(div_attrs),
-                                         input_attrs=flatatt(input_attrs),
-                                         icon_attrs=flatatt(icon_attrs))
         if self.options:
             self.options['language'] = translation.get_language()
-            js = self.js_template % dict(picker_id=picker_id,
-                                         options=json.dumps(self.options or {}))
+            json_options = self.js_template % dict(options=json.dumps(self.options or {}))
         else:
-            js = ''
-        return mark_safe(force_text(html + js))
+            json_options = ''
+        html = self.html_template % dict(div_attrs=flatatt(div_attrs),
+                                         input_attrs=flatatt(input_attrs),
+                                         icon_attrs=flatatt(icon_attrs),
+                                         json_options=json_options)
+        return mark_safe(force_text(html))
